@@ -77,6 +77,19 @@ $(function () {
     addMessageElement($el, options);
   }
 
+
+  // Gets the color of a username through our hash function
+  function getUsernameColor (username) {
+    // Compute hash code
+    var hash = 7;
+    for (var i = 0; i < username.length; i++) {
+       hash = username.charCodeAt(i) + (hash << 5) - hash;
+    }
+    // Calculate color
+    var index = Math.abs(hash % COLORS.length);
+    return COLORS[index];
+  }
+
   // Sets the client's username
   function setUsername() {
     username = cleanInput($usernameInput.val().trim());
@@ -94,6 +107,39 @@ $(function () {
     }
   }
 
+  // Adds the visual chat message to the message list
+  function addChatMessage(data, options) {
+    var $usernameDiv = $('<span class="username"/>')
+                        .text(data.username)
+                        .css('color',getUsernameColor(data.username));
+    var $messageBodyDiv = $('<span class="messageBody"/>')
+                          .text(data.message);
+    var $messageDiv = $('<li class="message"/>')
+                      .data('username', data.username)
+                      .append($usernameDiv, $messageBodyDiv);
+    console.log($messageDiv);                  
+    addMessageElement($messageDiv, options);                                                             
+  }
+
+  // Sends a chat message
+  function sendMessage() {
+    var message = $inputMessage.val();
+    // Prevent markup from being injected into the message
+    message = cleanInput(message);
+    // if there is a non-empty message and a socket connection
+    if (connected && message) {
+      $inputMessage.val('');
+      addChatMessage({
+        username: username,
+        message: message
+      });
+      // tell server to execute 'new message' and send along one parameter
+      socket.emit('new message', message);
+
+    }
+  }
+
+
   // Keyboard events
   $window.keydown(function (event) {
     // Auto-focus the current input when a key is typed
@@ -103,7 +149,7 @@ $(function () {
 
     if (event.which === 13) {
       if (username) {
-        //sendMessage();
+        sendMessage();
         //socket.emit('stop typing');
         typing = false;
       } else {
@@ -111,6 +157,8 @@ $(function () {
       }
     }
   });
+
+
 
   // Socket events
 
@@ -125,20 +173,21 @@ $(function () {
     addParticipantsMessage(data);
   });
 
-  socket.on('user joined', function(data){
+  socket.on('user joined', function (data) {
     log(data.username + ' joined');
     addParticipantsMessage(data);
   });
 
-  socket.on('user left', function(data){
+  socket.on('user left', function (data) {
     log(data.username + ' left');
     addParticipantsMessage(data);
     //removeChatTyping(data);
   });
 
-  // socket.emit('disconnect',function(){
-  //   log('You have been disconnected');
-  // });
+  // Whenever the server emits 'new message', update the chat body
+  socket.on('new message', function (data) {
+    addChatMessage(data);
+  });
 
 
 });
