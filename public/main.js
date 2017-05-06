@@ -110,6 +110,8 @@ $(function () {
     // Gets the 'X is typing' messages of a user
     function getTypingMessages(data) {
         return $('.typing.message').filter(function (i) {
+            console.log("i ", i);
+            console.log("$this ", $(this));
             return $(this).data('username') === data.username;
         });
     }
@@ -118,6 +120,7 @@ $(function () {
     function addChatMessage(data, options) {
         // Don't fade the message in if there is an 'X was typing'
         var $typingMessages = getTypingMessages(data);
+        console.log("typing messages ", $typingMessages);
         options = options || {};
         if ($typingMessages.length !== 0) {
             options.fade = false;
@@ -169,6 +172,7 @@ $(function () {
     // Removes the visual chat typing message
     function removeChatTyping(data) {
         getTypingMessages(data).fadeOut(function () {
+            console.log("this ", $(this));
             $(this).remove();
         });
     }
@@ -259,6 +263,17 @@ $(function () {
     // Whenever the server emits 'stop typing', kill the typing message
     socket.on('stop typing', function (data) {
         removeChatTyping(data);
+    });
+
+    socket.on('reconnect', function () {
+        log('you have been reconnected');
+        if (username) {
+            socket.emit('add user', username);
+        }
+    });
+
+    socket.on('reconnect_error', function () {
+        log('attempt to reconnect has failed');
     });
 
 });
